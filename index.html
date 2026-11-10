@@ -142,9 +142,44 @@ tr.past td{opacity:.6}
 td.sis{color:var(--pink-ink);font-weight:600}
 .loan{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
 @media (max-width:700px){.loan{grid-template-columns:1fr}}
-.loan-h{font-family:var(--display);font-weight:400;font-size:26px;margin:2px 0 0}
+.loan-h,.check-h{font-family:var(--display);font-weight:400;font-size:26px;margin:2px 0 0}
 .loan-grid{display:flex;flex-direction:column;gap:8px}
 .loan-sum{font-size:14px;margin-top:4px}
+.today{background:linear-gradient(160deg,color-mix(in srgb,var(--pink) 55%,var(--surface)) 0,var(--surface) 60%)}
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;align-items:start}
+@media (max-width:760px){.today-grid{grid-template-columns:1fr}}
+.spend-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.spend-amt{font-family:var(--display);font-size:clamp(44px,8vw,60px);line-height:1.05;color:var(--pink-ink)}
+.checklist{list-style:none;margin:12px 0 8px;padding:0;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.checklist input{width:20px;height:20px;margin-top:1px;accent-color:var(--pink-ink);flex:none}
+.checklist label{cursor:pointer;line-height:1.4}
+.checklist li.done label{color:var(--muted);text-decoration:line-through}
+.checklist li.done label b{color:inherit}
+.health-sum{margin-bottom:16px}
+details.fold{margin-top:4px}
+details.fold>summary{font-family:var(--body);font-size:14px;font-weight:600;color:var(--pink-ink);padding:6px 0}
+details.fold>summary::after{content:""}
+.goal-name{all:unset;font-weight:600;min-width:0;flex:1;border-bottom:1px dashed transparent;padding:1px 0}
+.goal-name:hover,.goal-name:focus{border-bottom-color:var(--line)}
+.goal .top{align-items:center}
+.goal-amts{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px}
+.goal-amts .lbl{font-size:12px;color:var(--muted);font-weight:600;margin-right:2px}
+.goal-amts .lbl:not(:first-child){margin-left:6px}
+.goal-amts .cur{font-family:var(--display);font-size:22px;color:var(--muted)}
+.goal-in{font:inherit;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--input);border:1px solid var(--input-line);border-radius:9px;padding:3px 8px;width:84px;min-width:0}
+.goal-in.big{font-family:var(--display);font-size:26px;width:120px;padding:0 8px}
+.reset{font:inherit;font-size:12px;border:none;background:none;color:var(--pink-ink);cursor:pointer;padding:0;text-decoration:underline}
+.x{font:inherit;cursor:pointer;border:none;background:none;color:var(--muted);padding:2px 4px}
+.accts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.acct{border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.acct-top{display:flex;gap:6px;align-items:center}
+.acct-bal{display:flex;align-items:center;gap:4px;background:var(--input);border:1.5px solid var(--input-line);border-radius:12px;padding:4px 12px}
+.acct-bal span{font-family:var(--display);font-size:24px;color:var(--yellow-ink)}
+.acct-bal input{all:unset;width:100%;min-width:0;font-family:var(--display);font-size:30px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.acct-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:12px}
+.acct-total{font-size:14px}
+.acct-total b{font-family:var(--display);font-size:26px;font-weight:400;margin-left:6px}
 </style>
 
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}[hidden]{display:none!important}</style>
@@ -154,10 +189,43 @@ td.sis{color:var(--pink-ink);font-weight:600}
     <div>
       <div class="eyebrow">Fortnightly budget · Oct 2026 – Dec 2027</div>
       <h1>Menna's <em>2027</em> budget</h1>
-      <p class="sub">Paid every second Thursday. Every pay splits 65 / 5 / 10 / 10 / 10. Emergency builds your Safety Net, and Future clears your card first. Type each pay and everything updates instantly.</p>
+      <p class="sub">Paid every second Thursday. Every pay splits 65 / 5 / 10 / 10 / 10. Emergency builds your Safety Net; Future pays for your appointments, then clears your card. Type each pay and everything updates instantly.</p>
     </div>
     <div class="status" id="status"><span class="dot"></span><span id="statusText">Connecting…</span></div>
   </header>
+
+  <!-- Today -->
+  <section class="panel today" aria-labelledby="today-h">
+    <div class="today-grid">
+      <div>
+        <div class="eyebrow" id="todayTag">Today</div>
+        <h2 id="today-h">This week</h2>
+        <p class="hint" id="todaySub" style="margin:6px 0 14px"></p>
+        <div class="spend-card">
+          <div class="eyebrow">Safe to spend this week</div>
+          <div class="spend-amt num" id="safeSpend">$0</div>
+          <div class="hint" id="safeSub"></div>
+        </div>
+        <label for="balNow" style="display:block;font-weight:600;margin:16px 0 6px">How much of this fortnight's spending money is left?</label>
+        <div class="small-input" style="margin-top:0"><span class="muted">$</span><input id="balNow" inputmode="decimal" placeholder="check your banking app" autocomplete="off"></div>
+        <div class="hint" id="balMsg" style="margin-top:6px"></div>
+      </div>
+      <div>
+        <div class="eyebrow" id="checkTag">Payday checklist</div>
+        <h3 class="check-h" id="checkH">Move your money</h3>
+        <ul class="checklist" id="checklist"></ul>
+        <div class="hint" id="checkDone"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bank accounts -->
+  <section class="panel" aria-labelledby="acct-h">
+    <div class="section-head"><div><div class="eyebrow" id="acctUpdated">Bank accounts</div><h2 id="acct-h">What's in my accounts</h2></div>
+      <span class="hint">Type your balances from your banking app. Your goals use these numbers. Rename, add or remove accounts any time.</span></div>
+    <div class="accts" id="accts"></div>
+    <div class="acct-foot"><button class="add" id="addAcct" type="button">+ Add an account</button><span class="acct-total">Total <b class="num" id="acctTotal">$0</b></span></div>
+  </section>
 
   <!-- Payday splitter -->
   <section class="panel" aria-labelledby="payday-h">
@@ -186,14 +254,15 @@ td.sis{color:var(--pink-ink);font-weight:600}
 
   <!-- Goals -->
   <section aria-labelledby="goals-h">
-    <div class="section-head"><h2 id="goals-h">Goals</h2><span class="hint">Emergency 10% always builds your Safety Net. Future 10% (and half of brand income) clears your card, then your sister, then goes to savings.</span></div>
+    <div class="section-head"><h2 id="goals-h">Goals</h2><span class="hint">Emergency 10% always builds your Safety Net. Future 10% (and half of brand income) goes to Health first, then your card, then your sister, then savings.</span></div>
     <div class="total-saved"><span class="eyebrow">Total saved</span><span class="amt num" id="totalSaved">$0</span><span class="muted" id="investNote"></span></div>
     <div class="goals" id="goals"></div>
+    <button class="add" id="addGoal" type="button" style="margin-top:10px">+ Add a goal</button>
     <div class="loan panel" style="margin-top:16px">
       <div>
         <div class="eyebrow">Backup money</div>
         <h3 class="loan-h">Sister's loan</h3>
-        <p class="hint" style="margin:4px 0 0">Backup for Bali and Melbourne. Whatever you don't use goes straight back to her. The rest is paid from Future once your card is clear. Set Borrowed to 0 if you don't take it.</p>
+        <p class="hint" style="margin:4px 0 0">Backup for Bali and Melbourne. Whatever you don't use goes straight back to her. The rest is paid from Future once Health and your card are covered. Set Borrowed to 0 if you don't take it.</p>
       </div>
       <div class="loan-grid">
         <div class="row"><span>Borrowed</span><input id="loanAmt" inputmode="decimal" aria-label="Amount borrowed"></div>
@@ -201,6 +270,21 @@ td.sis{color:var(--pink-ink);font-weight:600}
         <div class="loan-sum" id="loanSum"></div>
       </div>
     </div>
+  </section>
+
+  <!-- Health -->
+  <section class="panel" aria-labelledby="health-h">
+    <div class="section-head"><div><div class="eyebrow">Appointments</div><h2 id="health-h">Health fund</h2></div>
+      <span class="hint">Your Future 10% fills this first, then goes back to clearing your card. Book weekdays: weekends cost more.</span></div>
+    <div class="health-sum" id="healthSum"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Appointment</th><th>Date</th><th>Fee</th><th>Medicare back</th><th>You pay</th><th>Paid</th><th>Rebate in</th></tr></thead>
+        <tbody id="apptRows"></tbody>
+      </table>
+    </div>
+    <button class="add" id="addAppt" type="button" style="margin-top:8px">+ Add an appointment</button>
+    <p class="hint" style="margin:12px 0 0">Add each appointment with its fee and Medicare rebate. Pay the full fee on the day, claim the rebate, and put it straight back into Health.</p>
   </section>
 
   <!-- Credit card -->
@@ -234,27 +318,31 @@ td.sis{color:var(--pink-ink);font-weight:600}
   <!-- Ledger -->
   <section class="panel" aria-labelledby="ledger-h">
     <div class="section-head"><div><div class="eyebrow">22 Oct 2026 – Dec 2027 · 65 / 5 / 10 / 10 / 10</div><h2 id="ledger-h">Every payday</h2></div><span class="hint">Yellow cells are yours to type in. Tap a row to see its split above.</span></div>
+    <details class="fold"><summary>Show every payday</summary>
     <div class="scroll">
       <table>
         <thead><tr>
           <th>Pay date</th><th>Take-home</th><th>Centrelink</th><th>Brand</th><th>Needs</th><th>Groceries</th>
-          <th>Car</th><th>Emergency</th><th>Future</th><th>Fun</th><th>Card due</th><th>Extra to card</th><th>To sister</th><th>Saved</th><th>Total saved</th>
+          <th>Car</th><th>Emergency</th><th>Future</th><th>Fun</th><th>Card due</th><th>Future went to</th><th>Saved</th><th>Total saved</th>
         </tr></thead>
         <tbody id="ledger"></tbody>
         <tfoot><tr id="ledgerTotal"></tr></tfoot>
       </table>
     </div>
+    </details>
   </section>
 
   <!-- Monthly -->
   <section class="panel" aria-labelledby="month-h">
     <div class="section-head"><h2 id="month-h">Month by month</h2><span class="hint">Months with three paydays get a bonus pay. Save most of it.</span></div>
+    <details class="fold"><summary>Show every month</summary>
     <div class="scroll">
       <table>
-        <thead><tr><th>Month</th><th>Paydays</th><th>Take-home</th><th>Centrelink</th><th>Bills</th><th>Groceries</th><th>Fun</th><th>Card</th><th>Car fund</th><th>Extra to card</th><th>To sister</th><th>Saved</th></tr></thead>
+        <thead><tr><th>Month</th><th>Paydays</th><th>Take-home</th><th>Centrelink</th><th>Bills</th><th>Groceries</th><th>Fun</th><th>Card</th><th>Car fund</th><th>Health</th><th>Extra to card</th><th>To sister</th><th>Saved</th></tr></thead>
         <tbody id="months"></tbody>
       </table>
     </div>
+    </details>
   </section>
 
   <!-- Settings -->
@@ -316,7 +404,7 @@ const DEFAULTS = {
   needs:65, car:5, emer:10, fut:10, fun:10,
   first:"2026-10-22", end:"2027-12-31", stmt:16, due:30,
   prepRent:300, rentFrom:"2027-01-01",
-  start:0, buffer:1000, efund:6000, spend:2150, rego:840, service:1000, brand:50,
+  bulkAdded:true, start:0, buffer:1000, efund:6000, spend:2150, rego:840, service:1000, brand:50,
   bills:[
     {name:"Rent to Mum",amt:500,freq:"Fortnightly"},
     {name:"Fuel",amt:90,freq:"Weekly"},
@@ -324,7 +412,8 @@ const DEFAULTS = {
     {name:"SIM card",amt:30,freq:"Monthly"},
     {name:"Claude",amt:35,freq:"Monthly"},
     {name:"Revo Fitness",amt:55,freq:"Monthly"},
-    {name:"Donation",amt:8,freq:"Monthly"}
+    {name:"Donation",amt:8,freq:"Monthly"},
+    {name:"Bulk buy (energy drinks & protein bars)",amt:80,freq:"Monthly"}
   ]
 };
 const PREVIEW_PAY = 1380;
@@ -336,7 +425,15 @@ const num = v => { const n = parseFloat(String(v ?? "").replace(/[$,\s]/g,"")); 
 function localISO(x){ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
 const TODAY = localISO(new Date());
 
-let state = { settings: structuredClone(DEFAULTS), pays:{}, card:{}, cardInfo:{}, loan:{amount:2000, back:0}, rev:0 };
+function defaultAccounts(){ return [
+  {id:"everyday", name:"Everyday", bal:null},
+  {id:"savings", name:"Savings", bal:null},
+  {id:"emergency", name:"Emergency fund", bal:null},
+  {id:"car", name:"Car fund", bal:null}
+]; }
+const DEFAULT_HEALTH = { deposit:0, appts:[] };
+let state = { settings: structuredClone(DEFAULTS), pays:{}, card:{}, cardInfo:{}, loan:{amount:2000, back:0}, health:structuredClone(DEFAULT_HEALTH), ticks:{}, today:{}, goals:{}, accounts:defaultAccounts(), rev:0 };
+function healthTarget(st=state){ const h=st.health||DEFAULT_HEALTH; return Math.max(0, h.appts.reduce((t,a)=>t+(num(a.fee)||0)-(num(a.rebate)||0),0) - (num(h.deposit)||0)); }
 let selected = null;
 let docRef = null, saveTimer = null, saving = false, dirty = false, lastRev = -1;
 let C = null; // latest computed model
@@ -431,6 +528,7 @@ function compute(st=state){
   const loan = st.loan||{}; const amount=num(loan.amount)||0; const back=Math.min(amount, num(loan.back)||0);
   let owed = amount-back, running = num(s.start)||0;
   const cardStart = Math.max(0, num((st.cardInfo||{}).mine)||0); let cardLeft = cardStart;
+  const hTarget = healthTarget(st); let hLeft = hTarget;
   normDates.forEach(d=>{
     const e=st.pays[d]||{}; const wage=num(e.pay), govt=num(e.govt), brand=num(e.brand);
     const cd = CD[d]||null;
@@ -438,13 +536,14 @@ function compute(st=state){
     const r = split((wage||0)+(govt||0), brand||0, d, st);
     r.date=d; r.phase="norm"; r.cardDue=cd; r.wage=wage||0; r.govt=govt||0; r.payEntered = wage!=null||govt!=null;
     const extra = r.fut + r.brandSave;
-    r.toCard = Math.min(cardLeft, extra); cardLeft -= r.toCard;
-    r.toSister = Math.min(owed, extra - r.toCard); owed -= r.toSister;
-    r.saved = r.pool - r.toCard - r.toSister; running += r.saved; r.total = running;
+    r.toHealth = Math.min(hLeft, extra); hLeft -= r.toHealth;
+    r.toCard = Math.min(cardLeft, extra - r.toHealth); cardLeft -= r.toCard;
+    r.toSister = Math.min(owed, extra - r.toHealth - r.toCard); owed -= r.toSister;
+    r.saved = r.pool - r.toHealth - r.toCard - r.toSister; running += r.saved; r.total = running;
     rows[d]=r;
   });
   const repaid = amount - owed;
-  return {rows, prepDates, normDates, pots, loan:{amount, back, repaid, owed}, cardPay:{start:cardStart, paid:cardStart-cardLeft, left:cardLeft}, saved: running, CD};
+  return {rows, prepDates, normDates, pots, loan:{amount, back, repaid, owed}, cardPay:{start:cardStart, paid:cardStart-cardLeft, left:cardLeft}, health:{target:hTarget, filled:hTarget-hLeft}, saved: running, CD};
 }
 
 /* ---------- formatting ---------- */
@@ -472,7 +571,7 @@ function buildTables(){
       tr.innerHTML = `<td>${niceDate(d)}</td>${inputCell("p",d,"pay","Take-home")}${inputCell("g",d,"govt","Centrelink")}${inputCell("b",d,"brand","Brand income")}<td></td><td></td><td class="card"></td><td></td><td class="save"></td><td class="note"></td>`;
       pr.appendChild(tr);
     } else {
-      tr.innerHTML = `<td>${niceDate(d)}</td>${inputCell("p",d,"pay","Take-home")}${inputCell("g",d,"govt","Centrelink")}${inputCell("b",d,"brand","Brand income")}<td></td><td></td><td></td><td></td><td></td><td></td><td class="card"></td><td class="card"></td><td class="sis"></td><td class="save"></td><td class="save"></td>`;
+      tr.innerHTML = `<td>${niceDate(d)}</td>${inputCell("p",d,"pay","Take-home")}${inputCell("g",d,"govt","Centrelink")}${inputCell("b",d,"brand","Brand income")}<td></td><td></td><td></td><td></td><td></td><td></td><td class="card"></td><td class="note"></td><td class="save"></td><td class="save"></td>`;
       lg.appendChild(tr);
     }
     wireRow(tr,d);
@@ -505,19 +604,23 @@ function renderLoan(){
   $("loanSum").innerHTML = lb.amount<=0 ? "No loan." : lb.owed<=0.005 ? `<b>Paid back in full.</b>` : `Still owe <b>${money(lb.owed,2)}</b>${lb.repaid>0?` · paid back ${money(lb.repaid,2)} so far`:""}`;
 }
 
+function futureWent(r){
+  const out=[]; if(r.toHealth>0.005) out.push(money(r.toHealth,2)+" health"); if(r.toCard>0.005) out.push(money(r.toCard,2)+" card"); if(r.toSister>0.005) out.push(money(r.toSister,2)+" sister");
+  return out.join(" · ") || "Safety Net";
+}
 function renderLedger(){
-  const tot={wage:0,govt:0,brand:0,needs:0,groceries:0,car:0,emer:0,fut:0,fun:0,card:0,toCard:0,toSister:0,saved:0};
+  const tot={wage:0,govt:0,brand:0,needs:0,groceries:0,car:0,emer:0,fut:0,fun:0,card:0,toHealth:0,toCard:0,toSister:0,saved:0};
   C.normDates.forEach(d=>{
     const r=C.rows[d]; const tr=document.querySelector(`#ledger tr[data-date="${d}"]`); if(!tr) return; const c=tr.children;
     const cd=r.cardDue; c[10].textContent = cd ? (cd.amt!=null ? money(cd.amt,2) : "Statement") : ""; c[10].title = cd ? `Credit card due by ${niceDate(cd.due,true)}` : "";
     if (cd && cd.amt) tot.card+=cd.amt;
-    if (r.empty){ for (const i of [4,5,6,7,8,9,11,12,13,14]) c[i].textContent=""; c[5].className=""; return; }
-    for (const k of ["wage","govt","brand","needs","groceries","car","emer","fut","fun","toCard","toSister","saved"]) tot[k]+=r[k]||0;
+    if (r.empty){ for (const i of [4,5,6,7,8,9,11,12,13]) c[i].textContent=""; c[5].className=""; return; }
+    for (const k of ["wage","govt","brand","needs","groceries","car","emer","fut","fun","toHealth","toCard","toSister","saved"]) tot[k]+=r[k]||0;
     c[4].textContent=money(r.needs,2); c[5].textContent=money(r.groceries,2); c[5].className=r.low?"low":""; c[5].title=r.low?"Low pay: bills first, other buckets shrunk":"";
     c[6].textContent=money(r.car,2); c[7].textContent=money(r.emer,2); c[8].textContent=money(r.fut,2); c[9].textContent=money(r.fun,2);
-    c[11].textContent = r.toCard>0.005 ? money(r.toCard,2) : ""; c[12].textContent = r.toSister>0.005 ? money(r.toSister,2) : ""; c[13].textContent=money(r.saved,2); c[14].textContent=money(r.total,0);
+    c[11].textContent = futureWent(r); c[12].textContent=money(r.saved,2); c[13].textContent=money(r.total,0);
   });
-  $("ledgerTotal").innerHTML = `<td>Total</td><td>${money(tot.wage)}</td><td>${money(tot.govt)}</td><td>${money(tot.brand)}</td><td>${money(tot.needs)}</td><td>${money(tot.groceries)}</td><td>${money(tot.car)}</td><td>${money(tot.emer)}</td><td>${money(tot.fut)}</td><td>${money(tot.fun)}</td><td class="card">${money(tot.card)}</td><td class="card">${money(tot.toCard)}</td><td class="sis">${money(tot.toSister)}</td><td class="save">${money(tot.saved)}</td><td></td>`;
+  $("ledgerTotal").innerHTML = `<td>Total</td><td>${money(tot.wage)}</td><td>${money(tot.govt)}</td><td>${money(tot.brand)}</td><td>${money(tot.needs)}</td><td>${money(tot.groceries)}</td><td>${money(tot.car)}</td><td>${money(tot.emer)}</td><td>${money(tot.fut)}</td><td>${money(tot.fun)}</td><td class="card">${money(tot.card)}</td><td class="note">${[["toHealth","health"],["toCard","card"],["toSister","sister"]].filter(([k])=>tot[k]>0.005).map(([k,l])=>money(tot[k])+" "+l).join(" · ")}</td><td class="save">${money(tot.saved)}</td><td></td>`;
 }
 
 function renderSplitter(){
@@ -546,12 +649,12 @@ function renderSplitter(){
     B=[["Needs",r.needs,"b-needs","var(--pink-ink)",`Bills ${money(r.bills)} · groceries ${money(r.groceries)}`],
        ["Car fund",r.car,"b-car","var(--lilac-ink)","Rego & servicing"],
        ["Emergency",r.emer,"b-emer","var(--blue-ink)","Safety Net"],
-       ["Future",r.fut,"b-fut","var(--mint-ink)", r.toCard>0.005 ? "Extra card repayment" : r.toSister>0.005 ? "Paying back your sister" : "Safety Net, then investing"],
+       ["Future",r.fut,"b-fut","var(--mint-ink)", r.toHealth>0.005 ? "Health fund (appointments)" : r.toCard>0.005 ? "Extra card repayment" : r.toSister>0.005 ? "Paying back your sister" : "Safety Net, then investing"],
        ["Fun",r.fun,"b-fun","var(--yellow-ink)","Coffee, eating out, treats"]];
     if (r.low) flag = `<span class="flag">Low pay: bills come first, the other buckets shrink to fit</span>`;
     else if (r.groceries < 60) flag = `<span class="flag">Tight fortnight for groceries</span>`;
     const safety = r.saved;
-    move = `On payday move <b>${money(r.car,2)}</b> to your Car account${r.toCard>0.005?`, pay an extra <b>${money(r.toCard,2)}</b> off your card`:""}${r.toSister>0.005?`, <b>${money(r.toSister,2)}</b> to your sister`:""}${safety>0.005?` and <b>${money(safety,2)}</b> to your Safety Net`:""}${r.brand?` (includes ${money(r.brandSave,2)} of brand income)`:""}.`;
+    move = `On payday move <b>${money(r.car,2)}</b> to your Car account${r.toHealth>0.005?`, <b>${money(r.toHealth,2)}</b> to Health`:""}${r.toCard>0.005?`, pay an extra <b>${money(r.toCard,2)}</b> off your card`:""}${r.toSister>0.005?`, <b>${money(r.toSister,2)}</b> to your sister`:""}${safety>0.005?` and <b>${money(safety,2)}</b> to your Safety Net`:""}${r.brand?` (includes ${money(r.brandSave,2)} of brand income)`:""}.`;
   }
   const total = B.reduce((t,b)=>t+Math.max(0,b[1]),0);
   $("splitbar").innerHTML = B.map(b=>`<div style="flex-grow:${Math.max(b[1],0)};background:${b[3]};opacity:.75"></div>`).join("");
@@ -574,40 +677,122 @@ function spendingTwoPays(d){
   return t;
 }
 
-function renderGoals(){
-  const s=S(); const saved=C.saved; const L=C.loan;
-  const car = C.normDates.reduce((t,d)=>t+(C.rows[d].car||0),0);
-  $("totalSaved").textContent = money(saved);
-  const invest = Math.max(0, saved - s.efund);
-  $("investNote").textContent = invest>0 ? `${money(invest)} of it is now for investing` : "";
-  const G=[
-    ["Pay off your card", C.cardPay.paid, C.cardPay.start, "var(--lilac-ink)"],
-    ["Pay back your sister", L.repaid, L.amount, "var(--pink-ink)"],
-    ["Starter buffer", Math.min(saved,s.buffer), s.buffer, "var(--yellow-ink)"],
-    ["Emergency fund", Math.min(saved,s.efund), s.efund, "var(--blue-ink)"],
-    ["Car fund (rego + service)", car, (num(s.rego)||0)+(num(s.service)||0), "var(--lilac-ink)"],
-    ["Freedom number", saved, (num(s.spend)||0)*300, "var(--mint-ink)"]
+/* ---------- accounts ---------- */
+const acct = id => (state.accounts||[]).find(a=>a.id===id);
+const acctName = id => (acct(id)||{}).name || ({everyday:"Everyday",savings:"Savings",emergency:"Emergency fund",car:"Car fund"})[id] || id;
+const acctBal = id => { const a=acct(id); return a ? num(a.bal) : null; };
+function buildAccounts(){
+  const box=$("accts"); if (box.contains(document.activeElement)) return; box.innerHTML="";
+  (state.accounts||[]).forEach((a,i)=>{
+    const d=document.createElement("div"); d.className="acct";
+    const fixed = ["everyday","savings","emergency","car"].includes(a.id);
+    d.innerHTML = `<div class="acct-top"><input class="goal-name" id="an_${i}" aria-label="Account name" value="${(a.name||"").replace(/"/g,"&quot;")}">${fixed?"":`<button type="button" class="x" aria-label="Remove ${a.name}">✕</button>`}</div>
+      <div class="acct-bal"><span>$</span><input id="ab_${i}" inputmode="decimal" placeholder="0" aria-label="${a.name} balance"></div>
+      <div class="hint" id="as_${i}"></div>`;
+    const upd=(k,v)=>{ const ac=[...state.accounts]; ac[i]={...ac[i],[k]:v}; state.accounts=ac; if(k==="bal") state.acctUpdated=new Date().toISOString(); queueSave(); renderAll(); };
+    d.querySelector(`#an_${i}`).addEventListener("input",e=>upd("name",e.target.value));
+    d.querySelector(`#ab_${i}`).addEventListener("input",e=>upd("bal",num(e.target.value)));
+    const x=d.querySelector(".x"); if(x) x.addEventListener("click",()=>{ state.accounts=state.accounts.filter((_,k)=>k!==i); buildAccounts(); queueSave(); renderAll(); });
+    box.appendChild(d);
+  });
+}
+$("addAppt").addEventListener("click",()=>{ state.health={...state.health, appts:[...(state.health.appts||[]), {name:"Appointment", date:"", fee:390, rebate:89.30}]}; buildHealth(); queueSave(); renderAll(); });
+$("addAcct").addEventListener("click",()=>{ state.accounts=[...(state.accounts||[]), {id:"a"+Date.now(), name:"New account", bal:null}]; buildAccounts(); queueSave(); renderAll(); });
+function renderAccounts(){
+  const roles={everyday:"Bills + spending money",savings:"Health money + extra savings",emergency:"Safety Net: buffer & emergency fund",car:"Rego & servicing"};
+  let tot=0, any=false;
+  (state.accounts||[]).forEach((a,i)=>{
+    const el=$("ab_"+i); const n=num(a.bal); if(n!=null){ tot+=n; any=true; }
+    if (el && el!==document.activeElement) el.value = n!=null ? n : "";
+    const nm=$("an_"+i); if (nm && nm!==document.activeElement) nm.value=a.name||"";
+    const h=$("as_"+i); if (h) h.textContent = roles[a.id] || "";
+  });
+  $("acctTotal").textContent = any ? money(tot,2) : "—";
+  $("acctUpdated").textContent = state.acctUpdated ? `Bank accounts · updated ${new Date(state.acctUpdated).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})}` : "Bank accounts";
+}
+
+/* ---------- goals (all editable) ---------- */
+function goalDefs(){
+  const s=S(), L=C.loan;
+  const plannedCar = C.normDates.reduce((t,d)=>t+(C.rows[d].car||0),0);
+  const em = acctBal("emergency"), sv = acctBal("savings"), cr = acctBal("car");
+  const savedAuto = (em!=null||sv!=null) ? {v:(em||0)+(sv||0), src:`from your ${acctName("savings")} + ${acctName("emergency")} accounts`} : {v:C.saved, src:"planned from your pays"};
+  const emAuto = em!=null ? {v:em, src:`from your ${acctName("emergency")} account`} : {v:C.saved, src:"planned from your pays"};
+  const G = state.goals||{};
+  const tgt = (k, d) => num((G[k]||{}).target) ?? d;
+  return [
+    {k:"card", name:"Pay off your card", col:"var(--lilac-ink)", lbl:"Paid", auto:{v:C.cardPay.paid, src:"planned from your pays"}, target:num(state.cardInfo.mine)||0, setT:v=>{ state.cardInfo={...state.cardInfo, mine:v}; }},
+    {k:"sister", name:"Pay back your sister", col:"var(--pink-ink)", lbl:"Paid", auto:{v:L.repaid, src:"planned from your pays"}, target:L.amount, setT:v=>{ state.loan={...state.loan, amount:v}; }},
+    {k:"buffer", name:"Starter buffer", col:"var(--yellow-ink)", lbl:"Saved", auto:{v:Math.min(emAuto.v, s.buffer), src:emAuto.src}, target:num(s.buffer)||0, setT:v=>{ S().buffer=v; }},
+    {k:"efund", name:"Emergency fund", col:"var(--blue-ink)", lbl:"Saved", auto:emAuto, target:num(s.efund)||0, setT:v=>{ S().efund=v; }},
+    {k:"car", name:"Car fund (rego + service)", col:"var(--lilac-ink)", lbl:"Saved", auto: cr!=null ? {v:cr, src:`from your ${acctName("car")} account`} : {v:plannedCar, src:"planned from your pays"}, target:tgt("car",(num(s.rego)||0)+(num(s.service)||0)), setT:v=>{ G.car={...(G.car||{}), target:v}; }},
+    {k:"freedom", name:"Freedom number", col:"var(--mint-ink)", lbl:"Saved", auto:savedAuto, target:tgt("freedom",(num(s.spend)||0)*300), setT:v=>{ G.freedom={...(G.freedom||{}), target:v}; }},
+    ...((G.custom||[]).map((c,i)=>({k:"c_"+c.id, custom:i, name:c.name||"New goal", col:"var(--pink-ink)", lbl:"Saved", auto:{v:0, src:""}, target:num(c.target)||0, actual:num(c.actual), setT:v=>{ const cu=[...G.custom]; cu[i]={...cu[i], target:v}; G.custom=cu; }})))
   ];
-  $("goals").innerHTML = G.filter(g=>g[2]>0 || g[0].startsWith("Pay off")).map(([n,v,goal,col])=>{
-    const p = goal>0 ? Math.min(1, v/goal) : 0;
-    const pctTxt = p>0 && p<0.01 ? "<1%" : Math.floor(p*100)+"%";
-    return `<div class="goal ${p>=1?"done":""}"><div class="top"><span class="name">${n}</span><span class="pct" style="color:${col}">${pctTxt}</span></div>
-      <div><span class="amt num">${money(v)}</span> <span class="of num">of ${money(goal)}</span></div>
-      <div class="track" role="progressbar" aria-label="${n}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p*100)}"><i style="width:${p*100}%;background:${col}"></i></div>
-      <div class="of">${n.startsWith("Pay off")&&!goal?"Type your share in Credit card":p>=1?"Done!":money(Math.max(0,goal-v))+" to go"}</div></div>`;
-  }).join("");
+}
+function goalState(k){ state.goals = state.goals||{}; state.goals[k] = state.goals[k]||{}; return state.goals[k]; }
+let goalKeys="";
+function buildGoals(){
+  const defs=goalDefs(); const keys=defs.map(d=>d.k).join();
+  const box=$("goals"); if (keys===goalKeys && box.children.length) return; if (box.contains(document.activeElement)) return;
+  goalKeys=keys; box.innerHTML="";
+  defs.forEach(g=>{
+    const d=document.createElement("div"); d.className="goal"; d.dataset.k=g.k;
+    d.innerHTML = `<div class="top"><input class="goal-name" id="gn_${g.k}" aria-label="Goal name"><span class="pct" id="gp_${g.k}" style="color:${g.col}"></span>${g.custom!=null?`<button type="button" class="x" aria-label="Remove goal">✕</button>`:""}</div>
+      <div class="goal-amts"><span class="lbl">${g.lbl}</span><span class="cur">$</span><input class="goal-in big" id="ga_${g.k}" inputmode="decimal" aria-label="${g.lbl} so far"><span class="lbl">of $</span><input class="goal-in" id="gt_${g.k}" inputmode="decimal" aria-label="Goal amount"></div>
+      <div class="track"><i id="gb_${g.k}" style="background:${g.col}"></i></div>
+      <div class="of" id="go_${g.k}"></div>`;
+    const isC = g.custom!=null;
+    d.querySelector(`#gn_${g.k}`).addEventListener("input",e=>{ if(isC){ const cu=[...state.goals.custom]; cu[g.custom]={...cu[g.custom],name:e.target.value}; state.goals.custom=cu; } else goalState(g.k).name=e.target.value; queueSave(); });
+    d.querySelector(`#ga_${g.k}`).addEventListener("input",e=>{ const n=num(e.target.value);
+      if(isC){ const cu=[...state.goals.custom]; cu[g.custom]={...cu[g.custom],actual:n}; state.goals.custom=cu; }
+      else { const gs=goalState(g.k); if(n==null) delete gs.actual; else gs.actual=n; }
+      queueSave(); renderGoals(); });
+    d.querySelector(`#gt_${g.k}`).addEventListener("input",e=>{ const n=num(e.target.value); if(n==null) return; const def=goalDefs().find(x=>x.k===g.k); def.setT(n); queueSave(); renderAll(); });
+    const x=d.querySelector(".x"); if(x) x.addEventListener("click",()=>{ state.goals.custom=state.goals.custom.filter((_,i)=>i!==g.custom); goalKeys=""; buildGoals(); queueSave(); renderAll(); });
+    d.addEventListener("click",ev=>{ if(ev.target.classList.contains("reset")){ delete goalState(g.k).actual; queueSave(); renderGoals(); } });
+    box.appendChild(d);
+  });
+}
+$("addGoal").addEventListener("click",()=>{ state.goals=state.goals||{}; state.goals.custom=[...(state.goals.custom||[]), {id:Date.now(), name:"New goal", target:500}]; goalKeys=""; buildGoals(); queueSave(); renderAll(); });
+function renderGoals(){
+  buildGoals();
+  const defs=goalDefs(); const G=state.goals||{};
+  const savedAuto = defs.find(d=>d.k==="freedom").auto;
+  const fs=num((G.freedom||{}).actual);
+  const headline = fs!=null ? fs : savedAuto.v;
+  $("totalSaved").textContent = money(headline);
+  const em = num((G.efund||{}).actual) ?? defs.find(d=>d.k==="efund").auto.v;
+  const invest = Math.max(0, headline - (num(S().efund)||0));
+  $("investNote").textContent = (fs!=null ? "you set this in Freedom number" : savedAuto.src) + (invest>0 ? ` · ${money(invest)} is beyond your emergency fund` : "");
+  defs.forEach(g=>{
+    const isC = g.custom!=null;
+    const actual = isC ? g.actual : num((G[g.k]||{}).actual);
+    const v = actual!=null ? actual : g.auto.v;
+    const goal = g.target; const p = goal>0 ? Math.min(1, v/goal) : 0;
+    const set=(id,val)=>{ const el=$(id); if(el && el!==document.activeElement) el.value=val; };
+    set("gn_"+g.k, isC ? g.name : ((G[g.k]||{}).name || g.name));
+    set("ga_"+g.k, Math.round(v*100)/100);
+    set("gt_"+g.k, goal || "");
+    $("gp_"+g.k).textContent = p>0 && p<0.01 ? "<1%" : Math.floor(p*100)+"%";
+    $("gb_"+g.k).style.width = (p*100)+"%";
+    const card=$("gb_"+g.k).closest(".goal"); card.classList.toggle("done", p>=1);
+    let note = !goal ? "Type a goal amount" : p>=1 ? "Done!" : money(Math.max(0,goal-v))+" to go";
+    if (!isC) note += actual!=null ? ` · you set this <button type="button" class="reset">use auto (${money(g.auto.v)})</button>` : g.auto.src ? ` · ${g.auto.src}` : "";
+    $("go_"+g.k).innerHTML = note;
+  });
 }
 
 function renderMonths(){
   const keys = cardMonths().map(c=>c.key);
-  const m={}; keys.forEach(k=>m[k]={n:0,pays:0,wage:0,govt:0,bills:0,gro:0,fun:0,car:0,xc:0,sis:0,saved:0,card:num((state.card[k]||{}).amt)||0});
+  const m={}; keys.forEach(k=>m[k]={n:0,pays:0,wage:0,govt:0,bills:0,gro:0,fun:0,car:0,hl:0,xc:0,sis:0,saved:0,card:num((state.card[k]||{}).amt)||0});
   payDates().forEach(d=>{ if(m[ym(d)]) m[ym(d)].pays++; });
   Object.values(C.rows).forEach(r=>{ const x=m[ym(r.date)]; if(!x || r.empty) return;
     if(r.payEntered) x.n++; x.wage+=r.wage||0; x.govt+=r.govt||0; x.bills+=r.payEntered?(r.bills||0):0;
-    if (r.phase==="prep"){ x.gro+=r.spend||0; } else { x.gro+=r.groceries; x.fun+=r.fun; x.car+=r.car; x.xc+=r.toCard; x.sis+=r.toSister; x.saved+=r.saved; } });
+    if (r.phase==="prep"){ x.gro+=r.spend||0; } else { x.gro+=r.groceries; x.fun+=r.fun; x.car+=r.car; x.hl+=r.toHealth; x.xc+=r.toCard; x.sis+=r.toSister; x.saved+=r.saved; } });
   $("months").innerHTML = keys.map(k=>{ const x=m[k]; const [y,mo]=k.split("-").map(Number);
     return `<tr><td>${MONTHS[mo-1]} ${y}${x.pays===3?' <span class="muted" title="Three paydays this month">· 3 pays</span>':""}</td>
-    <td>${x.n||'<span class="muted">0</span>'}</td><td>${money(x.wage)}</td><td>${money(x.govt)}</td><td>${money(x.bills)}</td><td>${money(x.gro)}</td><td>${money(x.fun)}</td><td class="card">${money(x.card)}</td><td>${money(x.car)}</td><td class="card">${money(x.xc)}</td><td class="sis">${money(x.sis)}</td><td class="save">${money(x.saved)}</td></tr>`; }).join("");
+    <td>${x.n||'<span class="muted">0</span>'}</td><td>${money(x.wage)}</td><td>${money(x.govt)}</td><td>${money(x.bills)}</td><td>${money(x.gro)}</td><td>${money(x.fun)}</td><td class="card">${money(x.card)}</td><td>${money(x.car)}</td><td>${money(x.hl)}</td><td class="card">${money(x.xc)}</td><td class="sis">${money(x.sis)}</td><td class="save">${money(x.saved)}</td></tr>`; }).join("");
 }
 
 /* ---------- credit card ---------- */
@@ -666,10 +851,110 @@ $("cardMine").addEventListener("input",e=>{ setOwed("mine",e.target.value); rend
 $("loanAmt").addEventListener("input",e=>{ const n=num(e.target.value); if(n==null) return; state.loan={...state.loan, amount:n}; queueSave(); renderAll(); });
 $("loanBack").addEventListener("input",e=>{ state.loan={...state.loan, back:num(e.target.value)||0}; queueSave(); renderAll(); });
 
+/* ---------- today ---------- */
+function addDays(isoStr,n){ const d=new Date(isoStr+"T00:00:00"); d.setDate(d.getDate()+n); return localISO(d); }
+function currentPay(){ const ds=payDates(); let cur=null; ds.forEach(d=>{ if(d<=TODAY) cur=d; }); return cur; }
+function renderToday(){
+  const cur=currentPay(); const now=new Date(TODAY+"T00:00:00");
+  $("todayTag").textContent = "Today · " + now.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"long"});
+  if (!cur){ const first=payDates()[0]; $("today-h").textContent="Before your first payday"; $("todaySub").textContent = first?`First pay: ${niceDate(first,true)}.`:""; $("safeSpend").textContent="—"; $("safeSub").textContent=""; $("checklist").innerHTML=""; $("checkDone").textContent=""; return; }
+  const days = Math.round((now - new Date(cur+"T00:00:00"))/86400000);
+  const week = days < 7 ? 1 : 2; const next = addDays(cur,14);
+  $("today-h").textContent = `Week ${week} of your ${niceDate(cur)} pay`;
+  $("todaySub").textContent = `Next payday: ${niceDate(next,true)}${days===0?" · It's payday!":""}`;
+  const r=C.rows[cur];
+  const t=state.today||{}; const bal = t.pay===cur ? num(t.bal) : null;
+  if ($("balNow")!==document.activeElement) $("balNow").value = bal!=null ? bal : "";
+  if (!r || r.empty || !r.payEntered){
+    $("safeSpend").textContent="—"; $("safeSub").textContent="Type this fortnight's pay in Split this pay below to see your numbers.";
+    $("balMsg").textContent=""; $("checklist").innerHTML=""; $("checkTag").textContent="Payday checklist"; $("checkDone").textContent=""; return;
+  }
+  const spend = Math.max(0, r.groceries + r.fun); const w1 = spend/2, w2 = spend - w1;
+  let safe = week===1 ? w1 : w2;
+  if (bal!=null) safe = week===1 ? Math.max(0, bal - w2) : Math.max(0, bal);
+  $("safeSpend").textContent = money(safe,2);
+  $("safeSub").textContent = `Groceries + fun this fortnight: ${money(spend,2)} · Week 1 ${money(w1,2)} · Week 2 ${money(w2,2)}`;
+  if (bal==null) $("balMsg").textContent = "Optional. Type it once or twice a week and this number gets exact.";
+  else if (week===1) $("balMsg").textContent = bal < w2 ? `You've dipped ${money(w2-bal,2)} into next week's money. Go easy until ${niceDate(next)}.` : `On track. Leave ${money(w2,2)} for week 2.`;
+  else $("balMsg").textContent = bal<=0 ? `Spending is empty until ${niceDate(next)}. Bills and savings are still covered.` : `Make this last until ${niceDate(next)}.`;
+  // checklist
+  const cd=r.cardDue; const safety = r.emer + (r.fut + r.brandSave - r.toHealth - r.toCard - r.toSister);
+  const items = [
+    ["rent", r.rent!=null ? 0 : 0, null],
+  ].slice(0,0);
+  const rent = rentFor(cur);
+  if (rent>0.005) items.push(["rent", `Pay <b>${money(rent,2)}</b> rent to Mum`]);
+  items.push(["bills", `Keep <b>${money(r.bills-rent,2)}</b> in <b>${acctName("everyday")}</b> for bills (fuel, insurance, phone, subs, bulk buy)`]);
+  if (r.car>0.005) items.push(["car", `Move <b>${money(r.car,2)}</b> to <b>${acctName("car")}</b>`]);
+  if (r.toHealth>0.005) items.push(["health", `Move <b>${money(r.toHealth,2)}</b> to <b>${acctName("savings")}</b> for health appointments`]);
+  if (r.toCard>0.005) items.push(["xcard", `Pay an extra <b>${money(r.toCard,2)}</b> off your card`]);
+  if (r.toSister>0.005) items.push(["sister", `Send <b>${money(r.toSister,2)}</b> to your sister`]);
+  if (safety>0.005) items.push(["safety", `Move <b>${money(safety,2)}</b> to <b>${acctName("emergency")}</b>`]);
+  if (cd && cd.amt) items.push(["stmt", `Pay the <b>${money(cd.amt,2)}</b> card statement by ${niceDate(cd.due)}`]);
+  items.push(["spend", `Leave <b>${money(spend,2)}</b> in <b>${acctName("everyday")}</b> to spend (week 1 ${money(w1)}, week 2 ${money(w2)})`]);
+  const tk = (state.ticks||{})[cur] || {};
+  $("checkTag").textContent = `Payday checklist · ${niceDate(cur)} pay`;
+  $("checklist").innerHTML = items.map(([k,txt])=>`<li class="${tk[k]?"done":""}"><input type="checkbox" id="tk_${k}" data-k="${k}" ${tk[k]?"checked":""}><label for="tk_${k}">${txt}</label></li>`).join("");
+  $("checklist").querySelectorAll("input").forEach(cb=>cb.addEventListener("change",()=>{ state.ticks={...(state.ticks||{})}; state.ticks[cur]={...(state.ticks[cur]||{}), [cb.dataset.k]:cb.checked}; queueSave(); renderToday(); }));
+  const done = items.every(([k])=>tk[k]);
+  $("checkDone").textContent = done ? "All done for this payday." : `${items.filter(([k])=>tk[k]).length} of ${items.length} done`;
+}
+$("balNow").addEventListener("input", e=>{ state.today = {pay:currentPay(), bal:num(e.target.value), at:new Date().toISOString()}; queueSave(); renderToday(); });
+
+/* ---------- health ---------- */
+function buildHealth(){
+  const tb=$("apptRows"); if (tb.contains(document.activeElement)) return; tb.innerHTML="";
+  (state.health.appts||[]).forEach((a,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td class="in"><span style="display:flex;gap:4px;align-items:center"><input id="hn_${i}" aria-label="Appointment name" style="width:150px;text-align:left"><button type="button" class="x" aria-label="Remove appointment">✕</button></span></td><td class="in"><input type="date" id="hd_${i}" aria-label="${a.name} date" style="width:140px"></td>
+      <td class="in"><input id="hf_${i}" inputmode="decimal" aria-label="${a.name} fee"></td>
+      <td class="in"><input id="hr_${i}" inputmode="decimal" aria-label="${a.name} Medicare rebate"></td>
+      <td></td><td class="chk"><input type="checkbox" id="hp_${i}" aria-label="${a.name} paid"></td><td class="chk"><input type="checkbox" id="hb_${i}" aria-label="${a.name} rebate received"></td>`;
+    const upd = (k,v)=>{ const ap=[...state.health.appts]; ap[i]={...ap[i],[k]:v}; state.health={...state.health, appts:ap}; queueSave(); renderAll(); };
+    tr.querySelector(`#hd_${i}`).addEventListener("input",e=>upd("date",e.target.value));
+    tr.querySelector(`#hn_${i}`).addEventListener("input",e=>upd("name",e.target.value));
+    tr.querySelector(".x").addEventListener("click",()=>{ state.health={...state.health, appts:state.health.appts.filter((_,k)=>k!==i)}; buildHealth(); queueSave(); renderAll(); });
+    tr.querySelector(`#hf_${i}`).addEventListener("input",e=>{ const n=num(e.target.value); if(n!=null) upd("fee",n); });
+    tr.querySelector(`#hr_${i}`).addEventListener("input",e=>{ const n=num(e.target.value); if(n!=null) upd("rebate",n); });
+    tr.querySelector(`#hp_${i}`).addEventListener("change",e=>upd("paid",e.target.checked));
+    tr.querySelector(`#hb_${i}`).addEventListener("change",e=>upd("rebateIn",e.target.checked));
+    tb.appendChild(tr);
+  });
+}
+function renderHealth(){
+  const h=state.health; const ap=h.appts||[];
+  ap.forEach((a,i)=>{
+    const set=(id,v)=>{ const el=$(id); if(el && el!==document.activeElement) el.value=v; };
+    set("hd_"+i, a.date||""); set("hn_"+i, a.name||""); set("hf_"+i, a.fee??""); set("hr_"+i, a.rebate??"");
+    const p=$("hp_"+i), b=$("hb_"+i); if(p) p.checked=!!a.paid; if(b) b.checked=!!a.rebateIn;
+    const row=$("apptRows").children[i]; if(row){ row.children[4].textContent = money((num(a.fee)||0)-(num(a.rebate)||0),2); row.classList.toggle("past", !!a.paid && !!a.rebateIn); }
+  });
+  const H=C.health; const hAct=num(h.actual); const filled = hAct!=null ? hAct : H.filled;
+  const p = H.target>0 ? Math.min(1,filled/H.target) : 1;
+  const next = ap.find(a=>!a.paid);
+  let nextTxt = "";
+  if (next){ const dep = next===ap[0] ? (num(h.deposit)||0) : 0; const cash=(num(next.fee)||0)-dep;
+    nextTxt = `Next: <b>${next.name}</b>${next.date?` on <b>${niceDate(next.date,true)}</b>`:" (date not set)"}. Have <b>${money(cash,2)}</b> ready on the day; <b>${money(num(next.rebate)||0,2)}</b> comes back from Medicare.`; }
+  else nextTxt = "All appointments paid.";
+  const owedRebates = ap.filter(a=>a.paid && !a.rebateIn).reduce((t,a)=>t+(num(a.rebate)||0),0);
+  const sum=$("healthSum");
+  if (!sum.firstChild){
+    sum.innerHTML = `<div class="goal"><div class="top"><span class="name">Health fund</span><span class="pct" id="hPct" style="color:var(--blue-ink)"></span></div>
+      <div class="goal-amts"><span class="lbl">Saved</span><span class="cur">$</span><input class="goal-in big" id="hAct" inputmode="decimal" aria-label="Health fund saved"><span class="lbl" id="hOf"></span></div>
+      <div class="track"><i id="hBar" style="background:var(--blue-ink)"></i></div><div class="of" id="hNote"></div></div>`;
+    $("hAct").addEventListener("input",e=>{ const n=num(e.target.value); const hh={...state.health}; if(n==null) delete hh.actual; else hh.actual=n; state.health=hh; queueSave(); renderHealth(); });
+    sum.addEventListener("click",ev=>{ if(ev.target.classList.contains("reset")){ const hh={...state.health}; delete hh.actual; state.health=hh; queueSave(); renderHealth(); } });
+  }
+  if ($("hAct")!==document.activeElement) $("hAct").value = Math.round(filled*100)/100;
+  $("hOf").textContent = `of ${money(H.target)} after rebates`;
+  $("hPct").textContent = Math.floor(p*100)+"%"; $("hBar").style.width=(p*100)+"%";
+  $("hNote").innerHTML = nextTxt + (owedRebates>0?` Rebates still to come back: <b>${money(owedRebates,2)}</b>.`:"") + (hAct!=null ? ` · you set the saved amount <button type="button" class="reset">use auto (${money(H.filled)})</button>` : " · planned from your pays");
+}
+
 function renderAll(){
   C = compute();
   fillInputs();
-  renderLoan(); renderLedger(); renderSplitter(); renderGoals(); renderMonths(); renderCard(); renderSettingsTotals();
+  renderLoan(); renderAccounts(); renderToday(); renderHealth(); renderLedger(); renderSplitter(); renderGoals(); renderMonths(); renderCard(); renderSettingsTotals();
 }
 
 /* ---------- settings ---------- */
@@ -720,6 +1005,7 @@ $("bigBrand").addEventListener("input", e=>{ setPay(selected,"brand",e.target.va
 function pickDefault(){
   const ds=payDates();
   const has = d => state.pays[d] && (num(state.pays[d].pay)!=null || num(state.pays[d].govt)!=null);
+  const cur=currentPay(); if (cur) return cur;
   const lastEntered=[...ds].reverse().find(has);
   if (lastEntered){ const nxt = ds[ds.indexOf(lastEntered)+1]; return nxt && nxt<=TODAY ? nxt : lastEntered; }
   return ds.find(d=>d>=TODAY) || ds[0];
@@ -750,7 +1036,9 @@ async function flush(){
 function load(d){
   const settings={...structuredClone(DEFAULTS), ...(d.settings||{})};
   if (settings.first==="2027-01-14") settings.first=DEFAULTS.first;
-  return { settings, pays:d.pays||{}, card:d.card||{}, cardInfo:d.cardInfo||{}, loan:{amount:2000, back:0, ...(d.loan||{})}, rev:num(d.rev)||0 };
+  if (!settings.bulkAdded){ settings.bills = [...settings.bills]; if (!settings.bills.some(b=>/bulk/i.test(b.name||""))) settings.bills.push({name:"Bulk buy (energy drinks & protein bars)",amt:80,freq:"Monthly"}); settings.bulkAdded = true; }
+  return { settings, pays:d.pays||{}, card:d.card||{}, cardInfo:d.cardInfo||{}, loan:{amount:2000, back:0, ...(d.loan||{})},
+    health: d.health && d.health.appts ? d.health : structuredClone(DEFAULT_HEALTH), ticks:d.ticks||{}, today:d.today||{}, goals:d.goals||{}, accounts:Array.isArray(d.accounts)&&d.accounts.length?d.accounts:defaultAccounts(), acctUpdated:d.acctUpdated||null, rev:num(d.rev)||0 };
 }
 function applyRemote(data, meta){
   if (!data) return;
@@ -763,7 +1051,7 @@ function applyRemote(data, meta){
   if (!payDates().includes(selected)) selected=pickDefault();
   if (datesBefore !== payDates().map(d=>d+isPrep(d)).join()) buildTables();
   if ($("cardRows").children.length !== cardMonths().length) buildCard();
-  fillSettings(); renderAll();
+  buildHealth(); buildAccounts(); goalKeys=""; fillSettings(); renderAll();
 }
 
 
@@ -774,7 +1062,7 @@ $("copyData").addEventListener("click", async ()=>{
 });
 $("loadData").addEventListener("click", ()=>{
   try { const d=JSON.parse($("dataBox").value); if(!d || !d.settings) throw 0;
-    state = load(d); queueSave(); selected=pickDefault(); buildTables(); buildCard(); fillSettings(); renderAll();
+    state = load(d); queueSave(); selected=pickDefault(); buildTables(); buildCard(); buildHealth(); buildAccounts(); goalKeys=""; fillSettings(); renderAll();
     $("dataMsg").textContent="Loaded."; }
   catch(e){ $("dataMsg").textContent="That doesn't look like budget data. Copy it again from your other device."; }
 });
@@ -783,7 +1071,7 @@ $("loadData").addEventListener("click", ()=>{
   try { const raw=localStorage.getItem("menna-budget-2027"); if(raw){ state=load(JSON.parse(raw)); } } catch(e){}
   lastRev = state.rev ? state.rev : -1;
   selected = pickDefault();
-  buildTables(); buildCard(); fillSettings(); renderAll();
+  buildTables(); buildCard(); buildHealth(); buildAccounts(); fillSettings(); renderAll();
   setStatus("saving","Connecting…");
   const c = window.claude;
   if (!c || !c.use){ setStatus("","Saved in this browser"); return; }
