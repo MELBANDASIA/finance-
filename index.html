@@ -179,6 +179,11 @@ details.fold>summary::after{content:""}
 .acct-bal input{all:unset;width:100%;min-width:0;font-family:var(--display);font-size:30px;font-variant-numeric:tabular-nums;color:var(--ink)}
 .acct-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:12px}
 .acct-total{font-size:14px}
+.acctlog th input{width:104px}
+.acctlog th{vertical-align:bottom}
+.acctlog td.up{color:var(--mint-ink);font-weight:600}
+.acctlog td.down{color:var(--warn);font-weight:600}
+.acctlog tr.now td:first-child{font-weight:700}
 .acct-total b{font-family:var(--display);font-size:26px;font-weight:400;margin-left:6px}
 </style>
 
@@ -222,9 +227,9 @@ details.fold>summary::after{content:""}
   <!-- Bank accounts -->
   <section class="panel" aria-labelledby="acct-h">
     <div class="section-head"><div><div class="eyebrow" id="acctUpdated">Bank accounts</div><h2 id="acct-h">What's in my accounts</h2></div>
-      <span class="hint">Type your balances from your banking app. Your goals use these numbers. Rename, add or remove accounts any time.</span></div>
-    <div class="accts" id="accts"></div>
-    <div class="acct-foot"><button class="add" id="addAcct" type="button">+ Add an account</button><span class="acct-total">Total <b class="num" id="acctTotal">$0</b></span></div>
+      <span class="hint">One row per payday. Type each balance from your banking app on payday and the last column shows how much your money grew that fortnight. Your goals use the newest row. Rename, add or remove accounts any time.</span></div>
+    <div class="scroll acctlog" id="accts"></div>
+    <div class="acct-foot"><button class="add" id="addAcct" type="button">+ Add an account</button><span class="acct-total"><span id="acctGrow"></span> Total now <b class="num" id="acctTotal">$0</b></span></div>
   </section>
 
   <!-- Payday splitter -->
@@ -289,7 +294,7 @@ details.fold>summary::after{content:""}
 
   <!-- Credit card -->
   <section class="panel" aria-labelledby="card-h">
-    <div class="section-head"><h2 id="card-h">Credit card</h2><span class="hint">Statement around the 16th, paid off by the 30th. Type each statement amount when it arrives.</span></div>
+    <div class="section-head"><h2 id="card-h">Credit card</h2><span class="hint">You have stopped using this card. Type the final balance below and clear it by the due date.</span></div>
     <div class="owed">
       <div>
         <label for="cardOwed" style="display:block;font-weight:600;margin-bottom:6px">Owed on the card right now</label>
@@ -312,7 +317,7 @@ details.fold>summary::after{content:""}
         <tbody id="cardRows"></tbody>
       </table>
     </div>
-    <p class="hint" style="margin:12px 0 0">Keep groceries and fun on the card and pay each statement from those two buckets. Family purchases on the statement should be paid back to you before the 30th.</p>
+    <p class="hint" style="margin:12px 0 0">Groceries and fun now come straight from your everyday account. Move any automatic charges off the card so the balance stops growing.</p>
   </section>
 
   <!-- Ledger -->
@@ -432,7 +437,7 @@ function defaultAccounts(){ return [
   {id:"car", name:"Car fund", bal:null}
 ]; }
 const DEFAULT_HEALTH = { deposit:0, appts:[] };
-let state = { settings: structuredClone(DEFAULTS), pays:{}, card:{}, cardInfo:{}, loan:{amount:2000, back:0}, health:structuredClone(DEFAULT_HEALTH), ticks:{}, today:{}, goals:{}, accounts:defaultAccounts(), rev:0 };
+let state = { settings: structuredClone(DEFAULTS), pays:{}, card:{}, cardInfo:{}, loan:{amount:2000, back:0}, health:structuredClone(DEFAULT_HEALTH), ticks:{}, today:{}, goals:{}, accounts:defaultAccounts(), acctLog:{}, rev:0 };
 function healthTarget(st=state){ const h=st.health||DEFAULT_HEALTH; return Math.max(0, h.appts.reduce((t,a)=>t+(num(a.fee)||0)-(num(a.rebate)||0),0) - (num(h.deposit)||0)); }
 let selected = null;
 let docRef = null, saveTimer = null, saving = false, dirty = false, lastRev = -1;
@@ -681,33 +686,50 @@ function spendingTwoPays(d){
 const acct = id => (state.accounts||[]).find(a=>a.id===id);
 const acctName = id => (acct(id)||{}).name || ({everyday:"Everyday",savings:"Savings",emergency:"Emergency fund",car:"Car fund"})[id] || id;
 const acctBal = id => { const a=acct(id); return a ? num(a.bal) : null; };
+const LOG_START="2026-11-05";
+function logDates(){
+  const ds=payDates().filter(d=>d>=LOG_START); const L=state.acctLog||{};
+  const after=ds.filter(d=>d>TODAY); const lastShown=after[1]||after[0]||ds[ds.length-1];
+  return ds.filter(d=>d<=lastShown || (L[d] && Object.values(L[d]).some(v=>num(v)!=null)));
+}
+function logTotal(d){ const row=(state.acctLog||{})[d]; if(!row) return null; let t=0, any=false; (state.accounts||[]).forEach(a=>{ const n=num(row[a.id]); if(n!=null){ t+=n; any=true; } }); return any?t:null; }
+function syncBalsFromLog(){
+  const L=state.acctLog||{}; const ds=Object.keys(L).sort();
+  state.accounts=(state.accounts||[]).map(a=>{ let v=null; ds.forEach(d=>{ const n=num((L[d]||{})[a.id]); if(n!=null) v=n; }); return {...a, bal:v}; });
+}
 function buildAccounts(){
-  const box=$("accts"); if (box.contains(document.activeElement)) return; box.innerHTML="";
-  (state.accounts||[]).forEach((a,i)=>{
-    const d=document.createElement("div"); d.className="acct";
-    const fixed = ["everyday","savings","emergency","car"].includes(a.id);
-    d.innerHTML = `<div class="acct-top"><input class="goal-name" id="an_${i}" aria-label="Account name" value="${(a.name||"").replace(/"/g,"&quot;")}">${fixed?"":`<button type="button" class="x" aria-label="Remove ${a.name}">✕</button>`}</div>
-      <div class="acct-bal"><span>$</span><input id="ab_${i}" inputmode="decimal" placeholder="0" aria-label="${a.name} balance"></div>
-      <div class="hint" id="as_${i}"></div>`;
-    const upd=(k,v)=>{ const ac=[...state.accounts]; ac[i]={...ac[i],[k]:v}; state.accounts=ac; if(k==="bal") state.acctUpdated=new Date().toISOString(); queueSave(); renderAll(); };
-    d.querySelector(`#an_${i}`).addEventListener("input",e=>upd("name",e.target.value));
-    d.querySelector(`#ab_${i}`).addEventListener("input",e=>upd("bal",num(e.target.value)));
-    const x=d.querySelector(".x"); if(x) x.addEventListener("click",()=>{ state.accounts=state.accounts.filter((_,k)=>k!==i); buildAccounts(); queueSave(); renderAll(); });
-    box.appendChild(d);
-  });
+  const box=$("accts"); if (box.contains(document.activeElement) && document.activeElement.tagName==="INPUT") return;
+  const accts=state.accounts||[];
+  const head=accts.map((a,i)=>{ const fixed=["everyday","savings","emergency","car"].includes(a.id);
+    return `<th><span style="display:flex;gap:4px;align-items:center"><input class="goal-name" id="an_${i}" aria-label="Account name" value="${(a.name||"").replace(/"/g,"&quot;")}">${fixed?"":`<button type="button" class="x" data-rm="${i}" aria-label="Remove ${(a.name||"").replace(/"/g,"&quot;")}">✕</button>`}</span></th>`; }).join("");
+  const cur=currentPay();
+  const body=logDates().map(d=>`<tr class="${d===cur?"now":""}"><td>${niceDate(d)}${d===cur?" · this pay":""}</td>${accts.map((a,i)=>`<td class="in"><input id="al_${d}_${i}" data-d="${d}" data-i="${i}" inputmode="decimal" placeholder="—" aria-label="${(a.name||"").replace(/"/g,"&quot;")} balance ${niceDate(d,true)}"></td>`).join("")}<td class="num" id="alt_${d}"></td><td class="num" id="alc_${d}"></td></tr>`).join("");
+  box.innerHTML=`<table><thead><tr><th>Payday</th>${head}<th>Total</th><th>Change</th></tr></thead><tbody>${body}</tbody></table>`;
+  accts.forEach((a,i)=>{ const nm=$("an_"+i); if(nm) nm.addEventListener("input",e=>{ const ac=[...state.accounts]; ac[i]={...ac[i],name:e.target.value}; state.accounts=ac; queueSave(); renderAll(); }); });
+  box.querySelectorAll("[data-rm]").forEach(x=>x.addEventListener("click",()=>{ const i=+x.dataset.rm; x.blur(); state.accounts=state.accounts.filter((_,k)=>k!==i); buildAccounts(); queueSave(); renderAll(); }));
+  box.querySelectorAll("input[data-d]").forEach(el=>el.addEventListener("input",e=>{
+    const d=e.target.dataset.d, a=state.accounts[+e.target.dataset.i]; if(!a) return;
+    const L={...(state.acctLog||{})}; const row={...(L[d]||{})}; const n=num(e.target.value);
+    if(n==null) delete row[a.id]; else row[a.id]=n; L[d]=row; state.acctLog=L;
+    syncBalsFromLog(); state.acctUpdated=new Date().toISOString(); queueSave(); renderAll();
+  }));
 }
 $("addAppt").addEventListener("click",()=>{ state.health={...state.health, appts:[...(state.health.appts||[]), {name:"Appointment", date:"", fee:390, rebate:89.30}]}; buildHealth(); queueSave(); renderAll(); });
-$("addAcct").addEventListener("click",()=>{ state.accounts=[...(state.accounts||[]), {id:"a"+Date.now(), name:"New account", bal:null}]; buildAccounts(); queueSave(); renderAll(); });
+$("addAcct").addEventListener("click",()=>{ state.accounts=[...(state.accounts||[]), {id:"a"+Date.now(), name:"New account", bal:null}]; if(document.activeElement) document.activeElement.blur(); buildAccounts(); queueSave(); renderAll(); });
 function renderAccounts(){
-  const roles={everyday:"Bills + spending money",savings:"Health money + extra savings",emergency:"Safety Net: buffer & emergency fund",car:"Rego & servicing"};
-  let tot=0, any=false;
-  (state.accounts||[]).forEach((a,i)=>{
-    const el=$("ab_"+i); const n=num(a.bal); if(n!=null){ tot+=n; any=true; }
-    if (el && el!==document.activeElement) el.value = n!=null ? n : "";
-    const nm=$("an_"+i); if (nm && nm!==document.activeElement) nm.value=a.name||"";
-    const h=$("as_"+i); if (h) h.textContent = roles[a.id] || "";
+  const accts=state.accounts||[]; const L=state.acctLog||{}; const ds=logDates();
+  if (ds.length && !$("alt_"+ds[ds.length-1])) buildAccounts();
+  let prev=null, first=null, last=null;
+  ds.forEach(d=>{
+    accts.forEach((a,i)=>{ const el=$("al_"+d+"_"+i); const n=num((L[d]||{})[a.id]); if (el && el!==document.activeElement) el.value = n!=null ? n : ""; });
+    const t=logTotal(d), tc=$("alt_"+d), cc=$("alc_"+d); if(!tc||!cc) return;
+    tc.textContent = t!=null ? money(t,2) : "";
+    cc.className="num"; cc.textContent="";
+    if (t!=null){ if (prev!=null){ const c=t-prev; cc.textContent=(c>=0?"+":"")+money(c,2); cc.className="num "+(c>=0?"up":"down"); } else cc.textContent="Start"; prev=t; if(first==null) first=t; last=t; }
   });
-  $("acctTotal").textContent = any ? money(tot,2) : "—";
+  accts.forEach((a,i)=>{ const nm=$("an_"+i); if (nm && nm!==document.activeElement) nm.value=a.name||""; });
+  $("acctTotal").textContent = last!=null ? money(last,2) : "—";
+  const g=$("acctGrow"); if (g) g.textContent = (first!=null && last!=null && ds.filter(d=>logTotal(d)!=null).length>1) ? `${last-first>=0?"Up":"Down"} ${money(Math.abs(last-first),2)} since ${niceDate(ds.find(d=>logTotal(d)!=null))} ·` : "";
   $("acctUpdated").textContent = state.acctUpdated ? `Bank accounts · updated ${new Date(state.acctUpdated).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})}` : "Bank accounts";
 }
 
@@ -1038,7 +1060,12 @@ function load(d){
   if (settings.first==="2027-01-14") settings.first=DEFAULTS.first;
   if (!settings.bulkAdded){ settings.bills = [...settings.bills]; if (!settings.bills.some(b=>/bulk/i.test(b.name||""))) settings.bills.push({name:"Bulk buy (energy drinks & protein bars)",amt:80,freq:"Monthly"}); settings.bulkAdded = true; }
   return { settings, pays:d.pays||{}, card:d.card||{}, cardInfo:d.cardInfo||{}, loan:{amount:2000, back:0, ...(d.loan||{})},
-    health: d.health && d.health.appts ? d.health : structuredClone(DEFAULT_HEALTH), ticks:d.ticks||{}, today:d.today||{}, goals:d.goals||{}, accounts:Array.isArray(d.accounts)&&d.accounts.length?d.accounts:defaultAccounts(), acctUpdated:d.acctUpdated||null, rev:num(d.rev)||0 };
+    health: d.health && d.health.appts ? d.health : structuredClone(DEFAULT_HEALTH), ticks:d.ticks||{}, today:d.today||{}, goals:d.goals||{}, accounts:Array.isArray(d.accounts)&&d.accounts.length?d.accounts:defaultAccounts(), acctLog:seedLog(d), acctUpdated:d.acctUpdated||null, rev:num(d.rev)||0 };
+}
+function seedLog(d){
+  if (d.acctLog && typeof d.acctLog==="object") return d.acctLog;
+  const row={}; (Array.isArray(d.accounts)?d.accounts:[]).forEach(a=>{ const n=num(a.bal); if(n!=null) row[a.id]=n; });
+  return Object.keys(row).length ? {"2026-11-05":row} : {};
 }
 function applyRemote(data, meta){
   if (!data) return;
